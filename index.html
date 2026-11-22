@@ -140,7 +140,7 @@
 /* ===== 設定：部署 Apps Script 後，把網頁應用程式網址貼在這裡 ===== */
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbydfxQBMX09gSpx9WLNxpGW16BgC6vP_s8rGps6OwEzyeGXdMKdHnm2oKRXVGbphWei/exec';
 
-const ROLES = { n: ['護理師','助理員','技術員'], o: ['專科護理師','醫師','住院醫師','PGY','行政助理','研究助理'] };
+const ROLES = { n: ['護理師','助理員','技術員'], o: ['專科護理師','醫師','住院醫師','PGY','行政/研究助理'] };
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let SESS = [], OPEN = true, EXTRA = null;
