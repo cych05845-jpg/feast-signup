@@ -148,7 +148,7 @@
 /* ===== 設定：部署 Apps Script 後，把網頁應用程式網址貼在這裡 ===== */
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbydfxQBMX09gSpx9WLNxpGW16BgC6vP_s8rGps6OwEzyeGXdMKdHnm2oKRXVGbphWei/exec';
 
-const ROLES = { n: ['護理師','助理員','技術員'], o: ['專科護理師','醫師','住院醫師','PGY'] };
+const ROLES = { n: ['護理師','助理員','技術員'], o: ['專科護理師','醫師','住院醫師','PGY','行政助理','研究助理'] };
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let SESS = [], OPEN = true, EXTRA = null;
@@ -163,12 +163,12 @@ function demoStats(){
   return demoCfg.map(x=>{
     let n=0,o=0,w=0;
     demoRows.forEach(r=>{ if(r.session!==x.id) return; if(r.result==='錄取'){ r.g==='n'?n++:o++; } else w++; });
-    const oc=x.cap-10, t=n+o;
-    return {...x,reserved:10,nurse:n,other:o,total:t,wait:w,otherCap:oc,remaining:x.cap-t,nurseOpen:t<x.cap,otherOpen:o<oc&&t<x.cap};
+    const oc=x.cap-10, nc=x.cap-10, t=n+o;
+    return {...x,nurse:n,other:o,total:t,wait:w,otherCap:oc,nurseCap:nc,remaining:x.cap-t,nurseOpen:n<nc&&t<x.cap,otherOpen:o<oc&&t<x.cap};
   });
 }
 function demoPub(role){ const g = ROLES.n.includes(role)?'n':ROLES.o.includes(role)?'o':null;
-  return demoStats().map(x=>({id:x.id,label:x.label,cap:x.cap,remaining:Math.max(0,x.remaining),full:x.remaining<=0,open:g==='n'?x.nurseOpen:g==='o'?x.otherOpen:x.remaining>0,left:g==='o'?Math.max(0,Math.min(x.otherCap-x.other,x.remaining)):g==='n'?Math.max(0,x.remaining):null})); }
+  return demoStats().map(x=>({id:x.id,label:x.label,cap:x.cap,remaining:Math.max(0,x.remaining),full:x.remaining<=0,open:g==='n'?x.nurseOpen:g==='o'?x.otherOpen:x.remaining>0,left:g==='o'?Math.max(0,Math.min(x.otherCap-x.other,x.remaining)):g==='n'?Math.max(0,Math.min(x.nurseCap-x.nurse,x.remaining)):null})); }
 async function api(method, params, body){
   if (DEMO) {
     await new Promise(r=>setTimeout(r,250));
