@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>饗食天堂 午餐定位調查｜嘉基急診</title>
+<style>
+  :root{
+    --bg:#f6f4f0; --card:#fff; --ink:#1f2328; --muted:#6b7280; --line:#e5e1da;
+    --brand:#b4532a; --brand-ink:#fff; --ok:#1f7a4d; --ok-bg:#e6f4ec; --warn:#a15c00; --warn-bg:#fdf1dc;
+    --bad:#b42318; --bad-bg:#fdecea; --nurse:#2f7d6d; --other:#6b4fa3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Microsoft JhengHei","微軟正黑體","PingFang TC","Noto Sans TC",system-ui,sans-serif;line-height:1.6}
+  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 60px}
+  header h1{font-size:1.45rem;margin:.2em 0}
+  header p{margin:.2em 0;color:var(--muted);font-size:.95rem}
+  .demo{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:8px 12px;font-size:.9rem;margin:10px 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:16px 0}
+  .card h2{font-size:1.1rem;margin:0 0 10px}
+  .rules{margin:0;padding-left:1.2em;font-size:.95rem}
+  .rules li{margin:.25em 0}
+  .tag{display:inline-block;font-size:.78rem;padding:1px 8px;border-radius:999px;font-weight:600}
+  .tag.n{background:#e3f1ee;color:var(--nurse)} .tag.o{background:#efeaf7;color:var(--other)}
+  /* 名額 */
+  .sess{display:grid;gap:10px}
+  .s{border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .s-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .s-top b{font-size:1.02rem}
+  .s-top span{color:var(--muted);font-size:.9rem}
+  .bar{height:10px;background:#efece6;border-radius:99px;overflow:hidden;display:flex;margin:8px 0}
+  .bar i{display:block;height:100%}
+  .bar .bn{background:var(--nurse)} .bar .bo{background:var(--other)}
+  .s-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:.88rem;color:var(--muted)}
+  .s-meta .good{color:var(--ok);font-weight:600} .s-meta .need{color:var(--warn);font-weight:600}
+  /* 表單 */
+  label.f{display:block;font-weight:600;margin:14px 0 6px}
+  label.f small{font-weight:400;color:var(--muted)}
+  input[type=text],input[type=number],select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff}
+  textarea{min-height:64px;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:2px solid #e9b49a;border-color:var(--brand)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:520px){.row2{grid-template-columns:1fr}}
+  .roles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+  .roles fieldset{border:0;padding:0;margin:0}
+  .opt{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;cursor:pointer;background:#fff}
+  .opt input{accent-color:var(--brand)}
+  .opt:has(input:checked){border-color:var(--brand);background:#fbf1ec}
+  .opt.dis{opacity:.55}
+  .grp{font-size:.82rem;color:var(--muted);margin:10px 0 4px}
+  .slots{display:grid;gap:8px}
+  .slot{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .slot .st{font-size:.82rem;white-space:nowrap}
+  .st.ok{color:var(--ok)} .st.full{color:var(--bad)}
+  .check{display:flex;gap:8px;align-items:flex-start;margin-top:14px;font-size:.95rem}
+  .check input{margin-top:5px;accent-color:var(--brand)}
+  button{font:inherit;border:0;border-radius:12px;padding:12px 18px;cursor:pointer}
+  .primary{background:var(--brand);color:var(--brand-ink);font-weight:700;width:100%;margin-top:18px;font-size:1.05rem}
+  .primary:disabled{opacity:.6;cursor:wait}
+  .ghost{background:#f1ede6;color:var(--ink)}
+  .msg{border-radius:12px;padding:12px 14px;margin-top:14px;font-size:.98rem;display:none}
+  .msg.ok{display:block;background:var(--ok-bg);color:var(--ok)}
+  .msg.warn{display:block;background:var(--warn-bg);color:var(--warn)}
+  .msg.bad{display:block;background:var(--bad-bg);color:var(--bad)}
+  .lookup{display:flex;gap:8px}
+  .lookup input{flex:1}
+  .info{font-size:.92rem;color:var(--muted)}
+  .info a{color:var(--brand)}
+  .closed{text-align:center;padding:30px;color:var(--bad);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🍽️ 饗食天堂 午餐定位調查</h1>
+    <p>嘉義耐斯店（耐斯王子大飯店 7F）｜嘉基急診部</p>
+  </header>
+  <div id="demo" class="demo" hidden>示範模式：尚未設定後端網址，資料只存在這個頁面，重新整理就會清空。</div>
+
+  <section class="card">
+    <h2>報名須知</h2>
+    <ol class="rules">
+      <li>共 4 梯午餐，依送出先後錄取，額滿可登記候補。</li>
+      <li>每人限報一梯。</li>
+      <li><b>不開放攜帶員眷</b>，僅可攜帶不佔位之幼童，請填人數。</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>各梯時間與名額</h2>
+    <div id="sess" class="sess"><p class="info">載入中…</p></div>
+  </section>
+
+  <section class="card" id="formCard">
+    <h2>填寫報名</h2>
+    <form id="f" autocomplete="on" novalidate>
+      <div class="row2">
+        <div><label class="f" for="emp">員工編號</label><input id="emp" type="text" maxlength="20" required></div>
+        <div><label class="f" for="name">姓名</label><input id="name" type="text" maxlength="30" required></div>
+      </div>
+
+      <label class="f">職類</label>
+      <div class="roles" id="roles"></div>
+
+      <label class="f">報名梯次 <small>（請先選職類）</small></label>
+      <div id="slots" class="slots"><p class="info">請先選擇職類</p></div>
+
+      <div class="row2">
+        <div>
+          <label class="f" for="alt">可配合改梯次 <small>（選填）</small></label>
+          <select id="alt"><option value="">—</option></select>
+        </div>
+        <div>
+          <label class="f" for="kids">不佔位幼童 <small>（人數）</small></label>
+          <input id="kids" type="number" min="0" max="5" value="0" inputmode="numeric">
+        </div>
+      </div>
+
+      <label class="f" for="note">備註 <small>（選填）</small></label>
+      <textarea id="note" maxlength="200"></textarea>
+
+      <label class="check" id="extraWrap" hidden><input id="extra" type="checkbox"> <span id="extraTxt"></span></label>
+      <label class="check"><input id="noFamily" type="checkbox"> 我確認不攜帶員眷（僅攜帶不佔位幼童）</label>
+
+      <button class="primary" id="submit" type="submit">送出報名</button>
+      <div id="msg" class="msg" role="status"></div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>查詢我的報名</h2>
+    <div class="lookup">
+      <input id="qEmp" type="text" placeholder="輸入員工編號">
+      <button class="ghost" id="qBtn" type="button">查詢</button>
+    </div>
+    <div id="qMsg" class="msg" role="status"></div>
+  </section>
+
+  <section class="card info">
+    餐廳訂位：電話 05-277-3888｜<a href="https://pse.is/9v328d" target="_blank" rel="noopener">網路訂位</a><br>
+    報名後如需更改或取消，請聯絡護理長。
+  </section>
+</div>
+
+<script>
+/* ===== 設定：部署 Apps Script 後，把網頁應用程式網址貼在這裡 ===== */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbydfxQBMX09gSpx9WLNxpGW16BgC6vP_s8rGps6OwEzyeGXdMKdHnm2oKRXVGbphWei/exec';
+
+const ROLES = { n: ['護理師','助理員','技術員'], o: ['專科護理師','醫師','住院醫師','PGY'] };
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let SESS = [], OPEN = true, EXTRA = null;
+
+/* ---- 示範模式（沒有後端時用） ---- */
+const DEMO = !GAS_URL;
+const demoCfg = [
+  {id:'1209',label:'12/9(三) 中午 12:00',cap:30},{id:'1210',label:'12/10(四) 中午 12:00',cap:30},
+  {id:'1211',label:'12/11(五) 中午 12:00',cap:25},{id:'1217',label:'12/17(四) 中午 12:00',cap:30}];
+const demoRows = [];
+function demoStats(){
+  return demoCfg.map(x=>{
+    let n=0,o=0,w=0;
+    demoRows.forEach(r=>{ if(r.session!==x.id) return; if(r.result==='錄取'){ r.g==='n'?n++:o++; } else w++; });
+    const oc=x.cap-10, t=n+o;
+    return {...x,reserved:10,nurse:n,other:o,total:t,wait:w,otherCap:oc,remaining:x.cap-t,nurseOpen:t<x.cap,otherOpen:o<oc&&t<x.cap};
+  });
+}
+function demoPub(role){ const g = ROLES.n.includes(role)?'n':ROLES.o.includes(role)?'o':null;
+  return demoStats().map(x=>({id:x.id,label:x.label,cap:x.cap,full:x.remaining<=0,open:g==='n'?x.nurseOpen:g==='o'?x.otherOpen:x.remaining>0})); }
+async function api(method, params, body){
+  if (DEMO) {
+    await new Promise(r=>setTimeout(r,250));
+    if (method==='GET' && params.action==='lookup'){
+      const r = demoRows.find(x=>x.emp===params.emp.toUpperCase());
+      return r?{ok:true,found:true,record:{name:r.name,role:r.role,session:r.session==='EXTRA'?'12/22(二) 中午 11:30':demoCfg.find(s=>s.id===r.session).label,result:r.result,kids:r.kids}}:{ok:true,found:false};
+    }
+    if (method==='GET') return {ok:true,open:true,sessions:demoPub(params.role),extra:{label:'12/22(二) 中午 11:30'}};
+    const emp=body.emp.toUpperCase(), g=ROLES.n.includes(body.role)?'n':'o';
+    if (demoRows.some(x=>x.emp===emp)) return {ok:false,duplicate:true,error:'此員工編號已報名，如需更改請聯絡護理長。'};
+    if (body.session==='EXTRA'){ demoRows.push({...body,emp,g,result:'待加開'}); return {ok:true,result:'待加開',session:'12/22(二) 中午 11:30',sessions:demoPub(body.role)}; }
+    const s=demoStats().find(x=>x.id===body.session), can=g==='n'?s.nurseOpen:s.otherOpen;
+    if(!can && !body.allowWait) return {ok:false,full:true,error:`${s.label} 名額已滿，可改選其他梯次或登記候補`,sessions:demoPub(body.role)};
+    demoRows.push({...body,emp,g,result:can?'錄取':'候補'});
+    return {ok:true,result:can?'錄取':'候補',session:s.label,sessions:demoPub(body.role)};
+  }
+  if (method==='GET'){
+    const q = new URLSearchParams(params).toString();
+    const r = await fetch(GAS_URL + (q?'?'+q:''));
+    return r.json();
+  }
+  const r = await fetch(GAS_URL,{method:'POST',body:JSON.stringify(body)}); // text/plain，避免 CORS 預檢
+  return r.json();
+}
+
+/* ---- 名額顯示 ---- */
+function renderSessions(){
+  $('#sess').innerHTML = SESS.map(s=>`<div class="s"><div class="s-top">
+      <b>${esc(s.label)}</b><span>名額 ${s.cap} 位${s.full?'　<b style="color:var(--bad)">已額滿・可候補</b>':''}</span></div></div>`).join('');
+  const alt = $('#alt'), keep = alt.value;
+  alt.innerHTML = '<option value="">—</option>' + SESS.map(s=>`<option>${esc(s.label)}</option>`).join('') + '<option>皆可</option>';
+  alt.value = keep;
+  renderSlots();
+}
+function currentRole(){
+  const r = document.querySelector('input[name=role]:checked');
+  return r ? r.value : '';
+}
+function renderSlots(){
+  if (!currentRole()){ $('#slots').innerHTML = '<p class="info">請先選擇職類</p>'; return; }
+  const keep = (document.querySelector('input[name=session]:checked')||{}).value;
+  $('#slots').innerHTML = SESS.map(s=>{
+    const open = s.open;
+    return `<label class="opt slot ${open?'':'dis'}">
+      <span><input type="radio" name="session" value="${esc(s.id)}" ${keep===s.id?'checked':''}> ${esc(s.label)}</span>
+      <span class="st ${open?'ok':'full'}">${open?'可報名':'額滿・可候補'}</span></label>`;
+  }).join('') + (EXTRA ? `<label class="opt slot">
+      <span><input type="radio" name="session" value="EXTRA" ${keep==='EXTRA'?'checked':''}> 以上都不行，若加開 ${esc(EXTRA.label)} 我可以</span>
+      <span class="st">登記意願</span></label>` : '');
+  document.querySelectorAll('input[name=session]').forEach(el=>el.addEventListener('change',syncExtra));
+  syncExtra();
+}
+function syncExtra(){
+  const v = (document.querySelector('input[name=session]:checked')||{}).value;
+  $('#extraWrap').hidden = !EXTRA || v==='EXTRA';
+  if (EXTRA) $('#extraTxt').textContent = `如果加開 ${EXTRA.label}，我也願意改到那一梯（選填）`;
+}
+function renderRoles(){
+  $('#roles').innerHTML = [...ROLES.n, ...ROLES.o].map(r=>
+    `<label class="opt"><input type="radio" name="role" value="${esc(r)}"> ${esc(r)}</label>`).join('');
+  document.querySelectorAll('input[name=role]').forEach(el=>el.addEventListener('change',()=>{ renderSlots(); loadStatus(); }));
+}
+
+async function loadStatus(){
+  try{
+    const d = await api('GET',{role: currentRole()});
+    if(!d.ok) throw new Error(d.error);
+    SESS = d.sessions; OPEN = d.open; EXTRA = d.extra || null;
+    if(!OPEN){ $('#formCard').innerHTML = '<div class="closed">報名已截止，感謝大家！</div>'; }
+    renderSessions();
+  }catch(e){ $('#sess').innerHTML = `<p class="msg bad" style="display:block">名額載入失敗：${esc(e.message||e)}</p>`; }
+}
+
+function show(el, cls, html){ el.className = 'msg ' + cls; el.innerHTML = html; }
+
+/* ---- 送出 ---- */
+async function submit(allowWait){
+  const msg = $('#msg');
+  const role = (document.querySelector('input[name=role]:checked')||{}).value;
+  const session = (document.querySelector('input[name=session]:checked')||{}).value;
+  const body = {
+    emp: $('#emp').value.trim(), name: $('#name').value.trim(), role, session,
+    alt: $('#alt').value, kids: $('#kids').value, note: $('#note').value.trim(),
+    noFamily: $('#noFamily').checked, allowWait: !!allowWait, extra: $('#extra').checked,
+  };
+  const miss = [];
+  if(!body.emp) miss.push('員工編號'); if(!body.name) miss.push('姓名');
+  if(!role) miss.push('職類'); if(!session) miss.push('梯次');
+  if(!body.noFamily) miss.push('勾選不攜帶員眷');
+  if(miss.length){ show(msg,'bad','請完成：' + miss.join('、')); return; }
+
+  const btn = $('#submit'); btn.disabled = true; btn.textContent = '送出中…';
+  try{
+    const d = await api('POST',{},body);
+    if (d.sessions){ SESS = d.sessions; renderSessions(); }
+    if (d.ok){
+      const ok = d.result === '錄取';
+      show(msg, ok?'ok':'warn', ok
+        ? `✅ 報名成功！<b>${esc(body.name)}</b>，你已錄取 <b>${esc(d.session)}</b>。`
+        : d.result === '待加開'
+        ? `📝 已登記加開意願（${esc(d.session)}），確定加開會再通知你。`
+        : `🕒 已登記 <b>${esc(d.session)}</b> 候補，有空位時會通知你。`);
+      $('#f').querySelectorAll('input[type=text],textarea').forEach(i=>i.value='');
+      $('#kids').value = 0; $('#noFamily').checked = false; $('#extra').checked = false;
+    } else if (d.full){
+      show(msg,'warn', `${esc(d.error)}<br><button type="button" class="ghost" id="waitBtn" style="margin-top:8px">登記候補</button>`);
+      $('#waitBtn').onclick = () => submit(true);
+    } else {
+      show(msg,'bad', esc(d.error || '送出失敗，請再試一次'));
+    }
+  }catch(e){ show(msg,'bad','網路錯誤，請再試一次'); }
+  finally{ btn.disabled = false; btn.textContent = '送出報名'; }
+}
+$('#f').addEventListener('submit', e=>{ e.preventDefault(); submit(false); });
+
+/* ---- 查詢 ---- */
+$('#qBtn').addEventListener('click', async ()=>{
+  const emp = $('#qEmp').value.trim(), m = $('#qMsg');
+  if(!emp){ show(m,'bad','請輸入員工編號'); return; }
+  try{
+    const d = await api('GET',{action:'lookup',emp});
+    if(!d.ok) throw new Error(d.error);
+    if(!d.found){ show(m,'warn','查無報名資料'); return; }
+    const r = d.record;
+    show(m, r.result==='錄取'?'ok':'warn', `${esc(r.name)}（${esc(r.role)}）：<b>${esc(r.session)}</b>　${esc(r.result)}${Number(r.kids)?`　不佔位幼童 ${esc(r.kids)} 位`:''}`);
+  }catch(e){ show(m,'bad','查詢失敗：' + esc(e.message||e)); }
+});
+
+$('#demo').hidden = !DEMO;
+renderRoles();
+loadStatus();
+setInterval(loadStatus, 30000);
+</script>
+</body>
+</html>
