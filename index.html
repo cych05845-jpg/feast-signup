@@ -88,7 +88,7 @@
   </section>
 
   <section class="card">
-    <h2>各梯時間與名額</h2>
+    <h2>各梯時間與名額（即時）</h2>
     <div id="sess" class="sess"><p class="info">載入中…</p></div>
   </section>
 
@@ -167,7 +167,7 @@ function demoStats(){
   });
 }
 function demoPub(role){ const g = ROLES.n.includes(role)?'n':ROLES.o.includes(role)?'o':null;
-  return demoStats().map(x=>({id:x.id,label:x.label,cap:x.cap,full:x.remaining<=0,open:g==='n'?x.nurseOpen:g==='o'?x.otherOpen:x.remaining>0})); }
+  return demoStats().map(x=>({id:x.id,label:x.label,cap:x.cap,remaining:Math.max(0,x.remaining),full:x.remaining<=0,open:g==='n'?x.nurseOpen:g==='o'?x.otherOpen:x.remaining>0})); }
 async function api(method, params, body){
   if (DEMO) {
     await new Promise(r=>setTimeout(r,250));
@@ -196,7 +196,7 @@ async function api(method, params, body){
 /* ---- 名額顯示 ---- */
 function renderSessions(){
   $('#sess').innerHTML = SESS.map(s=>`<div class="s"><div class="s-top">
-      <b>${esc(s.label)}</b><span>名額 ${s.cap} 位${s.full?'　<b style="color:var(--bad)">已額滿・可候補</b>':''}</span></div></div>`).join('');
+      <b>${esc(s.label)}</b><span>名額 ${s.cap} 位　${s.full?'<b style="color:var(--bad)">已額滿・可候補</b>':`剩 <b>${s.remaining}</b> 位`}</span></div></div>`).join('');
   const alt = $('#alt'), keep = alt.value;
   alt.innerHTML = '<option value="">—</option>' + SESS.map(s=>`<option>${esc(s.label)}</option>`).join('') + '<option>皆可</option>';
   alt.value = keep;
