@@ -103,7 +103,7 @@
       <label class="f">職類</label>
       <div class="roles" id="roles"></div>
 
-      <label class="f">報名梯次 <small>（請先選職類）</small></label>
+      <label class="f">報名梯次 <small>（選好職類後，會顯示你這個職類各梯還剩幾位，方便約同事同梯）</small></label>
       <div id="slots" class="slots"><p class="info">請先選擇職類</p></div>
 
       <div class="row2">
@@ -167,7 +167,7 @@ function demoStats(){
   });
 }
 function demoPub(role){ const g = ROLES.n.includes(role)?'n':ROLES.o.includes(role)?'o':null;
-  return demoStats().map(x=>({id:x.id,label:x.label,cap:x.cap,remaining:Math.max(0,x.remaining),full:x.remaining<=0,open:g==='n'?x.nurseOpen:g==='o'?x.otherOpen:x.remaining>0})); }
+  return demoStats().map(x=>({id:x.id,label:x.label,cap:x.cap,remaining:Math.max(0,x.remaining),full:x.remaining<=0,open:g==='n'?x.nurseOpen:g==='o'?x.otherOpen:x.remaining>0,left:g==='o'?Math.max(0,Math.min(x.otherCap-x.other,x.remaining)):g==='n'?Math.max(0,x.remaining):null})); }
 async function api(method, params, body){
   if (DEMO) {
     await new Promise(r=>setTimeout(r,250));
@@ -213,7 +213,7 @@ function renderSlots(){
     const open = s.open;
     return `<label class="opt slot ${open?'':'dis'}">
       <span><input type="radio" name="session" value="${esc(s.id)}" ${keep===s.id?'checked':''}> ${esc(s.label)}</span>
-      <span class="st ${open?'ok':'full'}">${open?'可報名':'額滿・可候補'}</span></label>`;
+      <span class="st ${open?'ok':'full'}">${open?(s.left!=null?`${esc(currentRole())}剩 ${s.left} 位`:'可報名'):'額滿・可候補'}</span></label>`;
   }).join('') + (EXTRA ? `<label class="opt slot">
       <span><input type="radio" name="session" value="EXTRA" ${keep==='EXTRA'?'checked':''}> 以上都不行，若加開 ${esc(EXTRA.label)} 我可以</span>
       <span class="st">登記意願</span></label>` : '');
