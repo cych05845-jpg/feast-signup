@@ -209,14 +209,14 @@ function renderSlots(){
       <span class="st ${open?'ok':'full'}">${open?(s.left!=null?`${esc(currentRole())}剩 ${s.left} 位`:'可報名'):'額滿・可候補'}</span></label>`;
   }).join('') + (EXTRA ? `<label class="opt slot">
       <span><input type="radio" name="session" value="EXTRA" ${keep==='EXTRA'?'checked':''}> 以上都不行，若加開 ${esc(EXTRA.label)} 我可以</span>
-      <span class="st">登記意願</span></label>` : '');
+      <span class="st">登記意願（未確定加開）</span></label>` : '');
   document.querySelectorAll('input[name=session]').forEach(el=>el.addEventListener('change',syncExtra));
   syncExtra();
 }
 function syncExtra(){
   const v = (document.querySelector('input[name=session]:checked')||{}).value;
   $('#extraWrap').hidden = !EXTRA || v==='EXTRA';
-  if (EXTRA) $('#extraTxt').textContent = `如果加開 ${EXTRA.label}，我也願意改到那一梯（選填）`;
+  if (EXTRA) $('#extraTxt').textContent = `如果加開 ${EXTRA.label}，我也願意改到那一梯（選填；是否加開視報名情況決定）`;
 }
 function renderRoles(){
   $('#roles').innerHTML = [...ROLES.n, ...ROLES.o].map(r=>
@@ -261,7 +261,7 @@ async function submit(allowWait){
       show(msg, ok?'ok':'warn', ok
         ? `✅ 報名成功！<b>${esc(body.name)}</b>，你已錄取 <b>${esc(d.session)}</b>。`
         : d.result === '待加開'
-        ? `📝 已登記加開意願（${esc(d.session)}），確定加開會再通知你。`
+        ? `📝 已登記加開意願（${esc(d.session)}）。是否加開將視報名情況決定，確定後會再通知你；目前尚未錄取。`
         : `🕒 已登記 <b>${esc(d.session)}</b> 候補，有空位時會通知你。`);
       $('#f').querySelectorAll('input[type=text],textarea').forEach(i=>i.value='');
       $('#noFamily').checked = false; $('#extra').checked = false;
