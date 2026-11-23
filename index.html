@@ -82,8 +82,8 @@
     <h2>報名須知</h2>
     <ol class="rules">
       <li>共 4 梯午餐，依送出先後錄取。每人限報一梯。</li>
-      <li><b>候補機制：</b>該梯額滿時可登記候補。已錄取者取消後，依候補登記先後遞補，護理長會個別通知遞補結果。候補期間也可以改報其他還有名額的梯次（請聯絡護理長更改）。</li>
-      <li><b>取消：</b>已錄取但無法出席，請<b>盡早</b>告知護理長，讓候補的同仁能遞補，避免空位浪費。</li>
+      <li><b>候補機制：</b>該梯額滿時可登記候補。已錄取者取消後，系統依候補登記先後自動遞補，護理長會個別通知。候補期間也可以在本頁下方改報其他還有名額的梯次。</li>
+      <li><b>修改／取消：</b>報名成功會給你一組修改碼，可在本頁下方自行改梯次或取消。無法出席請<b>盡早</b>取消，讓候補的同仁遞補。</li>
       <li><b>不開放攜帶員眷（含幼童）</b>，僅限本人參加。因本次名額有限，且餐廳規定幼童也計入訂位人數，敬請見諒。</li>
     </ol>
   </section>
@@ -122,17 +122,29 @@
   </section>
 
   <section class="card">
-    <h2>查詢我的報名</h2>
+    <h2>查詢／修改／取消我的報名</h2>
     <div class="lookup">
-      <input id="qEmp" type="text" placeholder="輸入員工編號">
+      <input id="qEmp" type="text" placeholder="員工編號">
+      <input id="qCode" type="text" inputmode="numeric" maxlength="4" placeholder="4 位數修改碼" style="max-width:150px">
       <button class="ghost" id="qBtn" type="button">查詢</button>
     </div>
+    <p class="info" style="margin:6px 0 0">修改碼在報名成功時顯示。忘記修改碼請聯絡護理長。</p>
     <div id="qMsg" class="msg" role="status"></div>
+    <div id="mPanel" hidden>
+      <label class="f">改到這個梯次</label>
+      <div id="mSlots" class="slots"></div>
+      <label class="f">若有需要，也可以改到這些梯次 <small>（選填，可複選）</small></label>
+      <div id="mAlt" class="roles"></div>
+      <label class="check" id="mExtraWrap" hidden><input id="mExtra" type="checkbox"> <span id="mExtraTxt"></span></label>
+      <button class="primary" id="mSave" type="button">儲存修改</button>
+      <button class="ghost" id="mCancel" type="button" style="width:100%;margin-top:10px;color:var(--bad)">取消報名</button>
+      <div id="mMsg" class="msg" role="status"></div>
+    </div>
   </section>
 
   <section class="card info">
     餐廳訂位：電話 05-277-3888｜<a href="https://pse.is/9v328d" target="_blank" rel="noopener">網路訂位</a><br>
-    報名後如需更改或取消，請聯絡護理長。
+    忘記修改碼或有其他問題，請聯絡護理長。
   </section>
 </div>
 
@@ -275,7 +287,8 @@ async function submit(allowWait){
         ? `✅ 報名成功！<b>${esc(body.name)}</b>，你已錄取 <b>${esc(d.session)}</b>。`
         : d.result === '待加開'
         ? `📝 已登記加開意願（${esc(d.session)}）。是否加開將視報名情況決定，確定後會再通知你；目前尚未錄取。`
-        : `🕒 已登記 <b>${esc(d.session)}</b> 候補，有空位時會通知你。`);
+        : `🕒 已登記 <b>${esc(d.session)}</b> 候補，有空位時會依登記先後遞補並通知你。`);
+      if (d.code) msg.innerHTML += `<div style="margin-top:10px;padding:10px;border:2px dashed currentColor;border-radius:10px;text-align:center">你的修改碼：<b style="font-size:1.6rem;letter-spacing:4px">${esc(d.code)}</b><br><small>請截圖保存，之後修改或取消報名要用</small></div>`;
       $('#f').querySelectorAll('input[type=text],textarea').forEach(i=>i.value='');
       $('#noFamily').checked = false;
       document.querySelectorAll('input[name=alt]').forEach(i=>i.checked=false); $('#extra').checked = false;
@@ -290,17 +303,73 @@ async function submit(allowWait){
 }
 $('#f').addEventListener('submit', e=>{ e.preventDefault(); submit(false); });
 
-/* ---- 查詢 ---- */
+/* ---- 查詢／修改／取消 ---- */
+let M = null; // {emp, code, record, sessions, extra}
+function mBody(extra){ return { emp: M.emp, code: M.code, ...extra }; }
+function mRender(){
+  const r = M.record, cur = r.result==='待加開' ? 'EXTRA' : r.sid;
+  show($('#qMsg'), r.result==='錄取'?'ok':'warn', `${esc(r.name)}（${esc(r.role)}）：<b>${esc(r.session)}</b>　${esc(r.result)}`);
+  $('#mPanel').hidden = !M.open;
+  if (!M.open){ show($('#qMsg'), 'warn', $('#qMsg').innerHTML + '<br>報名已截止，如需修改請聯絡護理長。'); return; }
+  $('#mSlots').innerHTML = M.sessions.map(s=>{
+    const mine = s.id===r.sid && r.result!=='待加開';
+    const tag = mine ? '目前梯次' : s.open ? `剩 ${s.left} 位` : '額滿・可候補';
+    return `<label class="opt slot ${s.open||mine?'':'dis'}"><span><input type="radio" name="mSess" value="${esc(s.id)}" ${cur===s.id?'checked':''}> ${esc(s.label)}</span><span class="st ${s.open||mine?'ok':'full'}">${tag}</span></label>`;
+  }).join('') + (M.extra ? `<label class="opt slot"><span><input type="radio" name="mSess" value="EXTRA" ${cur==='EXTRA'?'checked':''}> 以上都不行，若加開 ${esc(M.extra.label)} 我可以</span><span class="st">登記意願（未確定加開）</span></label>` : '');
+  const altSet = new Set(String(r.alt||'').split('、').filter(Boolean));
+  const renderMAlt = ()=>{
+    const v = (document.querySelector('input[name=mSess]:checked')||{}).value;
+    $('#mAlt').innerHTML = v==='EXTRA' ? '<p class="info">—</p>' : M.sessions.filter(s=>s.id!==v).map(s=>{ const sl = shortLabel(s.label);
+      return `<label class="opt"><input type="checkbox" name="mAltC" value="${esc(sl)}" ${altSet.has(sl)?'checked':''}> ${esc(s.label.split(' ')[0])}</label>`; }).join('');
+    $('#mExtraWrap').hidden = !M.extra || v==='EXTRA';
+  };
+  if (M.extra){ $('#mExtraTxt').textContent = `如果加開 ${M.extra.label}，我也願意改到那一梯（是否加開視報名情況決定）`; $('#mExtra').checked = !!r.extra; }
+  document.querySelectorAll('input[name=mSess]').forEach(el=>el.addEventListener('change',renderMAlt));
+  renderMAlt();
+  $('#mCancel').textContent = '取消報名'; $('#mCancel').dataset.armed = '';
+  $('#mMsg').className = 'msg';
+}
 $('#qBtn').addEventListener('click', async ()=>{
-  const emp = $('#qEmp').value.trim(), m = $('#qMsg');
-  if(!emp){ show(m,'bad','請輸入員工編號'); return; }
+  const emp = $('#qEmp').value.trim(), code = $('#qCode').value.trim(), m = $('#qMsg');
+  $('#mPanel').hidden = true;
+  if(!emp || !code){ show(m,'bad','請輸入員工編號與修改碼'); return; }
   try{
-    const d = await api('GET',{action:'lookup',emp});
-    if(!d.ok) throw new Error(d.error);
-    if(!d.found){ show(m,'warn','查無報名資料'); return; }
-    const r = d.record;
-    show(m, r.result==='錄取'?'ok':'warn', `${esc(r.name)}（${esc(r.role)}）：<b>${esc(r.session)}</b>　${esc(r.result)}${Number(r.kids)?`　不佔位幼童 ${esc(r.kids)} 位`:''}`);
-  }catch(e){ show(m,'bad','查詢失敗：' + esc(e.message||e)); }
+    const d = await api('POST',{},{action:'auth',emp,code});
+    if(!d.ok){ show(m,'bad',esc(d.error)); return; }
+    M = { emp, code, record: d.record, sessions: d.sessions, extra: d.extra, open: d.open };
+    mRender();
+  }catch(e){ show(m,'bad','查詢失敗，請再試一次'); }
+});
+async function mSave(allowWait){
+  const v = (document.querySelector('input[name=mSess]:checked')||{}).value, mm = $('#mMsg');
+  if(!v){ show(mm,'bad','請選擇梯次'); return; }
+  const btn = $('#mSave'); btn.disabled = true; btn.textContent = '儲存中…';
+  try{
+    const d = await api('POST',{},mBody({ action:'modify', session:v, allowWait:!!allowWait,
+      alt:[...document.querySelectorAll('input[name=mAltC]:checked')].map(i=>i.value).join('、'), extra:$('#mExtra').checked }));
+    if (d.ok){
+      M.record = d.record; M.sessions = d.sessions; mRender();
+      show($('#mMsg'),'ok','✅ 已儲存修改。');
+      loadStatus();
+    } else if (d.full){
+      if (d.sessions) M.sessions = d.sessions;
+      show(mm,'warn', `${esc(d.error)}<br><button type="button" class="ghost" id="mWait" style="margin-top:8px">改登記這一梯的候補</button>`);
+      $('#mWait').onclick = () => mSave(true);
+    } else show(mm,'bad',esc(d.error||'儲存失敗'));
+  }catch(e){ show(mm,'bad','網路錯誤，請再試一次'); }
+  finally{ btn.disabled = false; btn.textContent = '儲存修改'; }
+}
+$('#mSave').addEventListener('click', ()=>mSave(false));
+$('#mCancel').addEventListener('click', async ()=>{
+  const b = $('#mCancel');
+  if (!b.dataset.armed){ b.dataset.armed = '1'; b.textContent = '確定要取消？再按一次確認'; return; }
+  b.disabled = true;
+  try{
+    const d = await api('POST',{},mBody({action:'cancel'}));
+    if (d.ok){ $('#mPanel').hidden = true; show($('#qMsg'),'ok','已取消報名。名額會釋出給候補的同仁，謝謝你提早告知。'); M = null; loadStatus(); }
+    else show($('#mMsg'),'bad',esc(d.error||'取消失敗'));
+  }catch(e){ show($('#mMsg'),'bad','網路錯誤，請再試一次'); }
+  finally{ b.disabled = false; }
 });
 
 $('#demo').hidden = !DEMO;
