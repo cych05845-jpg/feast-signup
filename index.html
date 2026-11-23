@@ -74,7 +74,7 @@
 <div class="wrap">
   <header>
     <h1>🍽️ 饗食天堂 午餐定位調查</h1>
-    <p>嘉義耐斯店（耐斯王子大飯店 7F）｜嘉基急診部</p>
+    <p>嘉義耐斯店（耐斯王子大飯店 7F）｜嘉基急診部 <span id="unitTag" class="tag n" hidden></span></p>
   </header>
   <div id="demo" class="demo" hidden>示範模式：尚未設定後端網址，資料只存在這個頁面，重新整理就會清空。</div>
 
@@ -89,7 +89,7 @@
   </section>
 
   <section class="card">
-    <h2>各梯時間與名額（即時）</h2>
+    <h2>各梯時間與剩餘名額（即時）</h2>
     <div id="sess" class="sess"><p class="info">載入中…</p></div>
   </section>
 
@@ -104,7 +104,7 @@
       <label class="f">職類</label>
       <div class="roles" id="roles"></div>
 
-      <label class="f">報名梯次 <small>（選好職類後，會顯示你這個職類各梯還剩幾位，方便約同事同梯）</small></label>
+      <label class="f">報名梯次</label>
       <div id="slots" class="slots"><p class="info">請先選擇職類</p></div>
 
       <label class="f">若有需要，也可以改到這些梯次 <small>（選填，可複選；方便遞補與調整）</small></label>
@@ -141,6 +141,10 @@
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbydfxQBMX09gSpx9WLNxpGW16BgC6vP_s8rGps6OwEzyeGXdMKdHnm2oKRXVGbphWei/exec';
 
 const ROLES = { n: ['護理師','助理員','技術員'], o: ['專科護理師','醫師','住院醫師','PGY','行政/研究助理'] };
+/* 兩份問卷：?unit=nursing（護理師・助理員・技術員）／?unit=medical（醫療部） */
+const UNIT_KEY = new URLSearchParams(location.search).get('unit');
+const UNIT = UNIT_KEY==='nursing' ? 'n' : UNIT_KEY==='medical' ? 'o' : null;
+const UNIT_NAME = { n: '護理師・助理員・技術員', o: '醫療部' };
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let SESS = [], OPEN = true, EXTRA = null;
@@ -189,7 +193,7 @@ async function api(method, params, body){
 /* ---- 名額顯示 ---- */
 function renderSessions(){
   $('#sess').innerHTML = SESS.map(s=>`<div class="s"><div class="s-top">
-      <b>${esc(s.label)}</b><span>名額 ${s.cap} 位　${s.full?'<b style="color:var(--bad)">已額滿・可候補</b>':`剩 <b>${s.remaining}</b> 位`}</span></div></div>`).join('');
+      <b>${esc(s.label)}</b><span>${s.open?`剩 <b>${s.left}</b> 位`:'<b style="color:var(--bad)">已額滿・可候補</b>'}</span></div></div>`).join('');
   renderSlots();
 }
 function currentRole(){
@@ -197,13 +201,13 @@ function currentRole(){
   return r ? r.value : '';
 }
 function renderSlots(){
-  if (!currentRole()){ $('#slots').innerHTML = '<p class="info">請先選擇職類</p>'; return; }
+  if (!SESS.length) return;
   const keep = (document.querySelector('input[name=session]:checked')||{}).value;
   $('#slots').innerHTML = SESS.map(s=>{
     const open = s.open;
     return `<label class="opt slot ${open?'':'dis'}">
       <span><input type="radio" name="session" value="${esc(s.id)}" ${keep===s.id?'checked':''}> ${esc(s.label)}</span>
-      <span class="st ${open?'ok':'full'}">${open?(s.left!=null?`${esc(currentRole())}剩 ${s.left} 位`:'可報名'):'額滿・可候補'}</span></label>`;
+      <span class="st ${open?'ok':'full'}">${open?`剩 ${s.left} 位`:'額滿・可候補'}</span></label>`;
   }).join('') + (EXTRA ? `<label class="opt slot">
       <span><input type="radio" name="session" value="EXTRA" ${keep==='EXTRA'?'checked':''}> 以上都不行，若加開 ${esc(EXTRA.label)} 我可以</span>
       <span class="st">登記意願（未確定加開）</span></label>` : '');
@@ -228,14 +232,14 @@ function syncExtra(){
   if (EXTRA) $('#extraTxt').textContent = `如果加開 ${EXTRA.label}，我也願意改到那一梯（選填；是否加開視報名情況決定）`;
 }
 function renderRoles(){
-  $('#roles').innerHTML = [...ROLES.n, ...ROLES.o].map(r=>
+  $('#roles').innerHTML = ROLES[UNIT].map(r=>
     `<label class="opt"><input type="radio" name="role" value="${esc(r)}"> ${esc(r)}</label>`).join('');
-  document.querySelectorAll('input[name=role]').forEach(el=>el.addEventListener('change',()=>{ renderSlots(); loadStatus(); }));
+  document.querySelectorAll('input[name=role]').forEach(el=>el.addEventListener('change',renderSlots));
 }
 
 async function loadStatus(){
   try{
-    const d = await api('GET',{role: currentRole()});
+    const d = await api('GET',{role: ROLES[UNIT][0]});
     if(!d.ok) throw new Error(d.error);
     SESS = d.sessions; OPEN = d.open; EXTRA = d.extra || null;
     if(!OPEN){ $('#formCard').innerHTML = '<div class="closed">報名已截止，感謝大家！</div>'; }
@@ -300,9 +304,21 @@ $('#qBtn').addEventListener('click', async ()=>{
 });
 
 $('#demo').hidden = !DEMO;
-renderRoles();
-loadStatus();
-setInterval(loadStatus, 30000);
+if (!UNIT) {
+  document.querySelectorAll('.wrap > section').forEach(el=>el.remove());
+  const c = document.createElement('section'); c.className = 'card';
+  c.innerHTML = `<h2>請選擇你的報名表</h2>
+    <a class="primary" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="?unit=nursing">護理師・助理員・技術員</a>
+    <a class="primary" style="display:block;text-align:center;text-decoration:none;margin-top:10px;background:#6b4fa3" href="?unit=medical">醫療部（專師・醫師・住院醫師・PGY・行政/研究助理）</a>`;
+  document.querySelector('.wrap').appendChild(c);
+} else {
+  const t = $('#unitTag'); t.hidden = false; t.textContent = UNIT_NAME[UNIT];
+  if (UNIT==='o') t.className = 'tag o';
+  document.title = `饗食天堂 午餐定位調查｜${UNIT_NAME[UNIT]}`;
+  renderRoles();
+  loadStatus();
+  setInterval(loadStatus, 30000);
+}
 </script>
 </body>
 </html>
