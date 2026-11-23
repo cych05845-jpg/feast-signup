@@ -107,8 +107,8 @@
       <label class="f">報名梯次 <small>（選好職類後，會顯示你這個職類各梯還剩幾位，方便約同事同梯）</small></label>
       <div id="slots" class="slots"><p class="info">請先選擇職類</p></div>
 
-      <label class="f" for="alt">可配合改梯次 <small>（選填）</small></label>
-      <select id="alt"><option value="">—</option></select>
+      <label class="f">若有需要，也可以改到這些梯次 <small>（選填，可複選；方便遞補與調整）</small></label>
+      <div id="altBox" class="roles"><p class="info">請先選擇報名梯次</p></div>
 
       <label class="f" for="note">備註 <small>（選填）</small></label>
       <textarea id="note" maxlength="200"></textarea>
@@ -190,9 +190,6 @@ async function api(method, params, body){
 function renderSessions(){
   $('#sess').innerHTML = SESS.map(s=>`<div class="s"><div class="s-top">
       <b>${esc(s.label)}</b><span>名額 ${s.cap} 位　${s.full?'<b style="color:var(--bad)">已額滿・可候補</b>':`剩 <b>${s.remaining}</b> 位`}</span></div></div>`).join('');
-  const alt = $('#alt'), keep = alt.value;
-  alt.innerHTML = '<option value="">—</option>' + SESS.map(s=>`<option>${esc(s.label)}</option>`).join('') + '<option>皆可</option>';
-  alt.value = keep;
   renderSlots();
 }
 function currentRole(){
@@ -213,7 +210,19 @@ function renderSlots(){
   document.querySelectorAll('input[name=session]').forEach(el=>el.addEventListener('change',syncExtra));
   syncExtra();
 }
+function shortLabel(l){ return String(l).split(' ')[0].replace(/\(.\)/,''); }
+function renderAlt(){
+  const v = (document.querySelector('input[name=session]:checked')||{}).value;
+  const kept = new Set([...document.querySelectorAll('input[name=alt]:checked')].map(i=>i.value));
+  const box = $('#altBox');
+  if (!v){ box.innerHTML = '<p class="info">請先選擇報名梯次</p>'; return; }
+  if (v==='EXTRA'){ box.innerHTML = '<p class="info">—</p>'; return; }
+  const others = SESS.filter(s=>s.id!==v);
+  box.innerHTML = others.map(s=>{ const sl = shortLabel(s.label);
+    return `<label class="opt"><input type="checkbox" name="alt" value="${esc(sl)}" ${kept.has(sl)?'checked':''}> ${esc(s.label.split(' ')[0])}</label>`; }).join('');
+}
 function syncExtra(){
+  renderAlt();
   const v = (document.querySelector('input[name=session]:checked')||{}).value;
   $('#extraWrap').hidden = !EXTRA || v==='EXTRA';
   if (EXTRA) $('#extraTxt').textContent = `如果加開 ${EXTRA.label}，我也願意改到那一梯（選填；是否加開視報名情況決定）`;
@@ -243,7 +252,7 @@ async function submit(allowWait){
   const session = (document.querySelector('input[name=session]:checked')||{}).value;
   const body = {
     emp: $('#emp').value.trim(), name: $('#name').value.trim(), role, session,
-    alt: $('#alt').value, kids: 0, note: $('#note').value.trim(),
+    alt: [...document.querySelectorAll('input[name=alt]:checked')].map(i=>i.value).join('、'), kids: 0, note: $('#note').value.trim(),
     noFamily: $('#noFamily').checked, allowWait: !!allowWait, extra: $('#extra').checked,
   };
   const miss = [];
@@ -264,7 +273,8 @@ async function submit(allowWait){
         ? `📝 已登記加開意願（${esc(d.session)}）。是否加開將視報名情況決定，確定後會再通知你；目前尚未錄取。`
         : `🕒 已登記 <b>${esc(d.session)}</b> 候補，有空位時會通知你。`);
       $('#f').querySelectorAll('input[type=text],textarea').forEach(i=>i.value='');
-      $('#noFamily').checked = false; $('#extra').checked = false;
+      $('#noFamily').checked = false;
+      document.querySelectorAll('input[name=alt]').forEach(i=>i.checked=false); $('#extra').checked = false;
     } else if (d.full){
       show(msg,'warn', `${esc(d.error)}<br><button type="button" class="ghost" id="waitBtn" style="margin-top:8px">登記候補</button>`);
       $('#waitBtn').onclick = () => submit(true);
