@@ -207,7 +207,7 @@ async function api(method, params, body){
 /* ---- 名額顯示 ---- */
 function renderSessions(){
   $('#sess').innerHTML = SESS.map(s=>`<div class="s"><div class="s-top">
-      <b>${esc(s.label)}</b><span>${s.open?`剩 <b>${s.left}</b> 位`:'<b style="color:var(--bad)">已額滿・可候補</b>'}</span></div></div>`).join('');
+      <b>${esc(s.label)}</b><span>訂位 ${s.cap} 位　${s.open?`剩 <b>${s.left}</b> 位`:'<b style="color:var(--bad)">已額滿・可候補</b>'}</span></div></div>`).join('');
   renderSlots();
 }
 function currentRole(){
